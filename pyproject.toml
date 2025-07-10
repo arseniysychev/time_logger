@@ -1,0 +1,18 @@
+[tool.black]
+line-length = 120
+include = '\.pyi?$'
+force-exclude = '''
+/(
+migrations
+)/
+'''
+
+[tool.isort]
+skip = ["migrations"]
+multi_line_output = 3
+include_trailing_comma = true
+line_length = 120
+reverse_sort = false
+known_django = "django"
+known_first_party = ["use_cases", "django_app", "fastapi_app"]
+sections = ["STDLIB", "FUTURE", "DJANGO", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]

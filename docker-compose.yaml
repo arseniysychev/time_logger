@@ -1,0 +1,20 @@
+services:
+  selenium:
+    image: selenium/standalone-chromium:137.0
+    shm_size: 2gb
+    ports:
+      - "4444:4444" # http://localhost:4444
+      - "5900:5900"
+      - "7900:7900" # http://localhost:7900/?autoconnect=1&resize=scale&password=secret
+    environment:
+      - SE_NODE_SESSION_TIMEOUT=3600
+
+  logger:
+    image: time_logger:0.1
+    environment:
+      - SANECUM_USERNAME=${SANECUM_USERNAME}
+      - SANECUM_PASSWORD=${SANECUM_PASSWORD}
+    depends_on:
+      - selenium
+    volumes:
+      - ./src:/src
