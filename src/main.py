@@ -2,6 +2,7 @@ import argparse
 import csv
 import importlib
 import os
+import re
 import sys
 import time
 import typing
@@ -17,6 +18,8 @@ class LogDataService:
     def __init__(self):
         self._sanecum_username = os.environ.get("SANECUM_USERNAME", "")
         self._sanecum_password = os.environ.get("SANECUM_PASSWORD", "")
+        self._redmine_username = os.environ.get("REDMINE_USERNAME", "")
+        self._redmine_password = os.environ.get("REDMINE_PASSWORD", "")
         chrome_options = webdriver.ChromeOptions()
         chrome_options.add_argument("start-maximized")
         self.driver = webdriver.Remote("http://selenium:4444/wd/hub", options=chrome_options)
@@ -85,6 +88,60 @@ class LogDataService:
 
         time.sleep(5)
 
+    def _redmine_add(self, begin_date: datetime, begin_time: str, end_time: str, description: str, show_task=False):
+        print("Adding...", begin_date, begin_time, end_time, description)
+        match = re.search(r'#(\d+)', description)
+        if match:
+            task_id = match.group(1)
+        else:
+            raise Exception("Can't find task for '%s'" % description)
+
+        begin_time = datetime.strptime(begin_time, "%H:%M")
+        end_time = datetime.strptime(end_time, "%H:%M")
+        duration = end_time - begin_time
+        hours = ':'.join(str(duration).split(':')[:2])
+        date_str = begin_date.strftime("%m%d%Y")
+
+        if show_task:
+            self.driver.get("https://red.backstage.pm/issues/%s" % task_id)
+            task_title = self.driver.find_element(By.CLASS_NAME, "subject").find_element(By.TAG_NAME, "h3").text
+            print("\tto #%s: %s" % (task_id, task_title))
+        else:
+            self.driver.get("https://red.backstage.pm/issues/%s/time_entries/new" % task_id)
+            self.driver.find_element(By.ID, "time_entry_spent_on").send_keys(date_str)
+            self.driver.find_element(By.ID, "time_entry_hours").send_keys(hours)
+            self.driver.find_element(By.ID, "time_entry_comments").send_keys(description)
+
+            self.driver.find_element(By.ID, "new_time_entry").submit()
+            time.sleep(1)
+
+    def do_redmine(self, data: typing.Iterable[LogDay], show_task: bool = False):
+        self.driver.get("https://red.backstage.pm/")
+        self.driver.find_element(By.ID, "username").send_keys(self._redmine_username)
+        self.driver.find_element(By.ID, "password").send_keys(self._redmine_password)
+        form_container = self.driver.find_element(By.ID, "login-form")
+        form_container.find_element(By.TAG_NAME, "form").submit()
+        time.sleep(2)
+
+        code = input('Two-factor authentication code: ')
+
+        self.driver.find_element(By.NAME, "twofa_code").send_keys(code.strip())
+        self.driver.find_element(By.ID, "twofa_form").submit()
+        time.sleep(2)
+
+        for log_day_item in data:
+            if not log_day_item.date.endswith(".2025"):
+                log_day_item.date = log_day_item.date + ".2025"
+
+            for log_period in log_day_item.items:
+                self._redmine_add(
+                    begin_date=datetime.strptime(log_day_item.date, "%d.%m.%Y"),
+                    begin_time=log_period.start,
+                    end_time=log_period.end,
+                    description=log_period.description,
+                    show_task=show_task,
+                )
+
     def close(self):
         self.driver.close()
         self.driver.quit()
@@ -134,8 +191,10 @@ def csv_import_data(path: str) -> typing.Iterable[LogDay]:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Example script with parameters")
     parser.add_argument("--format", type=str, required=True, help="Input data type")
+    parser.add_argument("--platform", type=str, required=True, help="Show parsed data only")
     parser.add_argument("--src", type=str, required=True, help="Data source path")
     parser.add_argument("--show_only", action="store_true", help="Show parsed data only")
+    parser.add_argument("--show_task", action="store_true", help="Show task from description")
     args = parser.parse_args()
 
     match str(args.format):
@@ -156,6 +215,12 @@ if __name__ == "__main__":
     log_data_service = LogDataService()
 
     try:
-        log_data_service.do_kimai(time_log_data)
+        match str(args.platform):
+            case "kimai":
+                log_data_service.do_kimai(time_log_data)
+            case "redmine":
+                log_data_service.do_redmine(time_log_data, args.show_task)
+            case _:
+                sys.exit("Invalid data platform")
     finally:
         log_data_service.close()

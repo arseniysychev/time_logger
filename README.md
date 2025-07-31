@@ -27,7 +27,7 @@ http://localhost:7900/?autoconnect=1&resize=scale&password=secret
 ## Examples
 
 ```
-docker compose run --rm logger --format csv --src "data/some_file.csv"
-docker compose run --rm logger --format csv --src "data/some_file.csv" --show_only
-docker compose run --rm logger --format py --src "data.sanecum.log_days" --show_only
+docker compose run --rm logger --platform kimai --format csv --src "data/some_file.csv"
+docker compose run --rm logger --platform kimai --format csv --src "data/some_file.csv" --show_only
+docker compose run --rm logger --platform kimai --format py --src "data.sanecum.log_days" --show_only
 ```

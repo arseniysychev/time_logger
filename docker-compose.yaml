@@ -14,6 +14,8 @@ services:
     environment:
       - SANECUM_USERNAME=${SANECUM_USERNAME}
       - SANECUM_PASSWORD=${SANECUM_PASSWORD}
+      - REDMINE_USERNAME=${REDMINE_USERNAME}
+      - REDMINE_PASSWORD=${REDMINE_PASSWORD}
     depends_on:
       - selenium
     volumes:
