@@ -66,6 +66,16 @@ class LogDataService:
         inp_description.clear()
         inp_description.send_keys(description)
 
+        row_tags = self.driver.find_element(By.CLASS_NAME, "timesheet_edit_form_row_tags")
+        select_tags = row_tags.find_element(By.CLASS_NAME, "col-sm-10")
+        select_tags.click()
+        time.sleep(1)
+        option = self.driver.find_element(By.XPATH, '//div[text()="SSM/Development"]')
+        self.driver.execute_script("arguments[0].scrollIntoView(true);", option)
+        time.sleep(2)
+        option.click()
+        select_tags.click()
+
         form = self.driver.find_element(By.NAME, "timesheet_edit_form")
         form.submit()
 
