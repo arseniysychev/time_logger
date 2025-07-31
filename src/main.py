@@ -100,7 +100,7 @@ class LogDataService:
 
     def _redmine_add(self, begin_date: datetime, begin_time: str, end_time: str, description: str, show_task=False):
         print("Adding...", begin_date, begin_time, end_time, description)
-        match = re.search(r'#(\d+)', description)
+        match = re.search(r"#(\d+)", description)
         if match:
             task_id = match.group(1)
         else:
@@ -109,7 +109,7 @@ class LogDataService:
         begin_time = datetime.strptime(begin_time, "%H:%M")
         end_time = datetime.strptime(end_time, "%H:%M")
         duration = end_time - begin_time
-        hours = ':'.join(str(duration).split(':')[:2])
+        hours = ":".join(str(duration).split(":")[:2])
         date_str = begin_date.strftime("%m%d%Y")
 
         if show_task:
@@ -133,7 +133,7 @@ class LogDataService:
         form_container.find_element(By.TAG_NAME, "form").submit()
         time.sleep(2)
 
-        code = input('Two-factor authentication code: ')
+        code = input("Two-factor authentication code: ")
 
         self.driver.find_element(By.NAME, "twofa_code").send_keys(code.strip())
         self.driver.find_element(By.ID, "twofa_form").submit()
