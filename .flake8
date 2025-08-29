@@ -1,4 +1,5 @@
 [flake8]
+extend-ignore = E203
 max-line-length = 150
-exclude=*/migrations/*,*/__pycache__/*
+exclude=*/migrations/*,*/__pycache__/*,src/data/*
 per-file-ignores = __init__.py:F401

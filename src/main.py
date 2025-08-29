@@ -2,7 +2,6 @@ import argparse
 import csv
 import importlib
 import os
-import re
 import sys
 import time
 import typing
@@ -88,23 +87,18 @@ class LogDataService:
         for log_day_item in data:
             for log_period in log_day_item.items:
                 self._kimai_add(
-                    begin_date=(
-                        log_day_item.date if log_day_item.date.endswith(".2025") else log_day_item.date + ".2025"
-                    ),
-                    begin_time=log_period.start,
-                    end_time=log_period.end,
+                    begin_date=log_period.start.strftime("%d.%m.%Y"),
+                    begin_time=log_period.start.strftime("%H:%M"),
+                    end_time=log_period.end.strftime("%H:%M"),
                     description=log_period.description,
                 )
 
         time.sleep(5)
 
-    def _redmine_add(self, begin_date: datetime, begin_time: str, end_time: str, description: str, show_task=False):
-        print("Adding...", begin_date, begin_time, end_time, description)
-        match = re.search(r"#(\d+)", description)
-        if match:
-            task_id = match.group(1)
-        else:
-            raise Exception("Can't find task for '%s'" % description)
+    def _redmine_add(
+        self, task_id: str, begin_date: datetime, begin_time: str, end_time: str, description: str, show_task=False
+    ):
+        print("Adding...", task_id, begin_date, begin_time, end_time, description)
 
         begin_time = datetime.strptime(begin_time, "%H:%M")
         end_time = datetime.strptime(end_time, "%H:%M")
@@ -140,14 +134,12 @@ class LogDataService:
         time.sleep(2)
 
         for log_day_item in data:
-            if not log_day_item.date.endswith(".2025"):
-                log_day_item.date = log_day_item.date + ".2025"
-
             for log_period in log_day_item.items:
                 self._redmine_add(
-                    begin_date=datetime.strptime(log_day_item.date, "%d.%m.%Y"),
-                    begin_time=log_period.start,
-                    end_time=log_period.end,
+                    task_id=log_period.task_id,
+                    begin_date=log_period.start,
+                    begin_time=log_period.start.strftime("%H:%M"),
+                    end_time=log_period.end.strftime("%H:%M"),
                     description=log_period.description,
                     show_task=show_task,
                 )
@@ -207,6 +199,9 @@ if __name__ == "__main__":
     parser.add_argument("--show_task", action="store_true", help="Show task from description")
     args = parser.parse_args()
 
+    # logging.basicConfig()
+    # logging.getLogger().setLevel(logging.DEBUG)
+
     match str(args.format):
         case "csv":
             time_log_data = csv_import_data(args.src)
@@ -219,7 +214,10 @@ if __name__ == "__main__":
         for log_day in time_log_data:
             print(log_day.date)
             for log_item in log_day.items:
-                print("\t %s-%s %s" % (log_item.start, log_item.end, log_item.description))
+                print(
+                    "\t %s-%s %s"
+                    % (log_item.start.strftime("%H:%M"), log_item.end.strftime("%H:%M"), log_item.description)
+                )
         sys.exit(0)
 
     log_data_service = LogDataService()
