@@ -5,7 +5,7 @@ import os
 import sys
 import time
 import typing
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -78,7 +78,7 @@ class LogDataService:
         form = self.driver.find_element(By.NAME, "timesheet_edit_form")
         form.submit()
 
-    def do_kimai(self, data: typing.Iterable[LogDay]):
+    def do_kimai(self, data: typing.Iterable[LogDay], format_date, format_time):
         self.driver.get("https://tracker.sanecum.io")
         button_login = self.driver.find_element(By.ID, "social-login-button")
         button_login.click()
@@ -87,9 +87,9 @@ class LogDataService:
         for log_day_item in data:
             for log_period in log_day_item.items:
                 self._kimai_add(
-                    begin_date=log_period.start.strftime("%d.%m.%Y"),
-                    begin_time=log_period.start.strftime("%H:%M"),
-                    end_time=log_period.end.strftime("%H:%M"),
+                    begin_date=log_period.start.strftime(format_date),
+                    begin_time=log_period.start.strftime(format_time),
+                    end_time=log_period.end.strftime(format_time),
                     description=log_period.description,
                 )
 
@@ -164,27 +164,27 @@ def csv_import_data(path: str) -> typing.Iterable[LogDay]:
         reader = csv.DictReader(csvfile)
         current_log_day = None
         for row in reader:
-            date_str = row["Datum"]
+            date_str = row["date"]
             date = datetime.strptime(date_str, "%d.%m.%Y")
-            if not current_log_day or date_str != current_log_day.date:
+            if not current_log_day or date.date() != current_log_day.date:
                 if current_log_day:
                     yield current_log_day
                 current_log_day = LogDay(
                     date=datetime.strftime(date, out_date_format),
                     items=[],
                 )
-            time_start_str = row["Arbeitszeit von "]
-            time_end_str = row["Arbeitszeit bis"]
+            time_start_str = row["start"]
+            time_end_str = row["end"]
             time_start = datetime.strptime(time_start_str, "%H:%M")
             time_end = datetime.strptime(time_end_str, "%H:%M")
 
-            current_log_day.items.append(
-                LogPeriod(
-                    start=datetime.strftime(time_start, out_time_format),
-                    end=datetime.strftime(time_end, out_time_format),
-                    description=row["Beschreibung"],
-                )
+            log_period = LogPeriod(
+                start=datetime.strftime(time_start, out_time_format),
+                end=datetime.strftime(time_end, out_time_format),
+                description=row["description"],
             )
+            log_period.set_date(date=date.date())
+            current_log_day.items.append(log_period)
 
         if current_log_day:
             yield current_log_day
@@ -211,13 +211,24 @@ if __name__ == "__main__":
             sys.exit("Invalid data format")
 
     if args.show_only:
+        total_duration = timedelta()
         for log_day in time_log_data:
-            print(log_day.date)
+            print(log_day.date, log_day.total_duration())
             for log_item in log_day.items:
+                item_duration = log_item.get_duration()
                 print(
-                    "\t %s-%s %s"
-                    % (log_item.start.strftime("%H:%M"), log_item.end.strftime("%H:%M"), log_item.description)
+                    "\t %s-%s - %s %s"
+                    % (
+                        log_item.start.strftime("%H:%M"),
+                        log_item.end.strftime("%H:%M"),
+                        item_duration,
+                        log_item.description,
+                    )
                 )
+                total_duration += log_item.get_duration()
+        total_hours = int(total_duration.total_seconds() // 3600)
+        total_minutes = int((total_duration.total_seconds() % 3600) // 60)
+        print("Total: {total_hours} h {total_minutes} m".format(total_hours=total_hours, total_minutes=total_minutes))
         sys.exit(0)
 
     log_data_service = LogDataService()
@@ -225,7 +236,11 @@ if __name__ == "__main__":
     try:
         match str(args.platform):
             case "kimai":
-                log_data_service.do_kimai(time_log_data)
+                date_format = "%d.%m.%Y"
+                time_format = "%H:%M"
+                # date_format = "%m/%d/%Y"
+                # time_format = "%I:%M %p"
+                log_data_service.do_kimai(time_log_data, format_date=date_format, format_time=time_format)
             case "redmine":
                 log_data_service.do_redmine(time_log_data, args.show_task)
             case _:

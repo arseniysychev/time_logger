@@ -31,3 +31,10 @@ docker compose run --rm logger --platform kimai --format csv --src "data/some_fi
 docker compose run --rm logger --platform kimai --format csv --src "data/some_file.csv" --show_only
 docker compose run --rm logger --platform kimai --format py --src "data.sanecum.log_days" --show_only
 ```
+
+## CSV file example
+
+| date       | start | end   | description |
+|------------|-------|-------|-------------|
+| 01.09.2025 | 9:00  | 14:00 | Part 1      |
+| 01.09.2025 | 15:00 | 17:00 | Part 2      |
