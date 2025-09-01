@@ -135,6 +135,7 @@ class LogDataService:
 
         for log_day_item in data:
             for log_period in log_day_item.items:
+                assert log_period.task_id
                 self._redmine_add(
                     task_id=log_period.task_id,
                     begin_date=log_period.start,
@@ -217,11 +218,12 @@ if __name__ == "__main__":
             for log_item in log_day.items:
                 item_duration = log_item.get_duration()
                 print(
-                    "\t %s-%s - %s %s"
+                    "\t %s-%s - %s  %s %s"
                     % (
                         log_item.start.strftime("%H:%M"),
                         log_item.end.strftime("%H:%M"),
                         item_duration,
+                        log_item.task_id,
                         log_item.description,
                     )
                 )

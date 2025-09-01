@@ -244,7 +244,7 @@ class WorkingDaySet:
             yield LogDay(
                 date=working_day.date.strftime("%d.%m.%Y"),
                 items=[
-                    LogPeriod(slot.start.strftime("%H:%M"), slot.end.strftime("%H:%M"), slot.task.description)
+                    LogPeriod(slot.start.strftime("%H:%M"), slot.end.strftime("%H:%M"), slot.task.description, task_id=str(slot.task.pk))
                     for slot in working_day.slots
                     if slot.task
                 ],
